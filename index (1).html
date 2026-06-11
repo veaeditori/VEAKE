@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f0f0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="VEAKE">
+<title>VEAKE</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root {
+    --bg: #0f0f0f;
+    --surface: #1a1a1a;
+    --border: rgba(255,255,255,0.08);
+    --text: #f0f0f0;
+    --muted: #666;
+    --subtle: #333;
+    --work: #c8f04a;
+    --work-dim: #2a3510;
+    --break: #4ab8f0;
+    --break-dim: #0d2535;
+    --alert: #f04a4a;
+    --alert-dim: #2a0d0d;
+    --paused: #f0a84a;
+    --paused-dim: #2a1d08;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, 'SF Pro Display', system-ui, sans-serif;
+    overflow: hidden;
+    user-select: none;
+  }
+  .app {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    height: 100dvh;
+    padding: env(safe-area-inset-top, 20px) 24px env(safe-area-inset-bottom, 20px);
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 0 12px;
+  }
+  .logo {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--text);
+  }
+  .gear-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 22px;
+    cursor: pointer;
+    padding: 4px;
+    line-height: 1;
+    transition: color 0.2s;
+  }
+  .gear-btn:active { color: var(--text); }
+
+  /* Sessions dots */
+  .sessions {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    padding: 8px 0;
+  }
+  .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--subtle);
+    transition: background 0.3s, transform 0.3s;
+  }
+  .dot.done { background: var(--work); }
+  .dot.current { background: var(--work); transform: scale(1.4); }
+
+  /* Clock area */
+  .clock-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .ring-container {
+    position: relative;
+    width: min(260px, 65vw);
+    height: min(260px, 65vw);
+  }
+  .ring-container svg {
+    width: 100%; height: 100%;
+    transform: rotate(-90deg);
+  }
+  .ring-bg { stroke: var(--subtle); stroke-width: 6; fill: none; }
+  .ring-fg {
+    stroke-width: 6; fill: none; stroke-linecap: round;
+    transition: stroke-dashoffset 0.6s ease, stroke 0.4s;
+  }
+  .clock-inner {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .clock-time {
+    font-size: clamp(42px, 12vw, 56px);
+    font-weight: 300;
+    letter-spacing: -2px;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    transition: color 0.4s;
+  }
+  .clock-sub {
+    font-size: 12px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* Status pill */
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 6px 16px;
+    border-radius: 100px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    transition: all 0.3s;
+  }
+  .status-pill .dot-live {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--muted);
+    transition: background 0.3s;
+  }
+  .status-pill.work { border-color: var(--work); background: var(--work-dim); color: var(--work); }
+  .status-pill.work .dot-live { background: var(--work); animation: pulse 1.4s infinite; }
+  .status-pill.brk { border-color: var(--break); background: var(--break-dim); color: var(--break); }
+  .status-pill.brk .dot-live { background: var(--break); animation: pulse 1.4s infinite; }
+  .status-pill.alert { border-color: var(--alert); background: var(--alert-dim); color: var(--alert); }
+  .status-pill.alert .dot-live { background: var(--alert); animation: pulse 0.6s infinite; }
+  .status-pill.paused { border-color: var(--paused); background: var(--paused-dim); color: var(--paused); }
+  @keyframes pulse {
+    0%,100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.7); }
+  }
+
+  /* Bottom area */
+  .bottom {
+    padding: 16px 0 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* Buttons */
+  .btn-row {
+    display: flex;
+    gap: 10px;
+  }
+  .btn {
+    flex: 1;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    border-radius: 14px;
+    padding: 16px 12px;
+    font-size: 15px;
+    font-family: inherit;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: background 0.15s, transform 0.1s, opacity 0.2s;
+    -webkit-touch-callout: none;
+  }
+  .btn:active { transform: scale(0.96); background: #2a2a2a; }
+  .btn:disabled { opacity: 0.3; pointer-events: none; }
+  .btn.primary {
+    background: var(--work);
+    border-color: var(--work);
+    color: #0f0f0f;
+    font-weight: 600;
+  }
+  .btn.primary:active { background: #a8cc30; }
+  .btn.blue {
+    background: var(--break);
+    border-color: var(--break);
+    color: #0f0f0f;
+    font-weight: 600;
+  }
+  .btn.danger {
+    border-color: rgba(240,74,74,0.3);
+    color: var(--alert);
+  }
+  .btn.danger:active { background: var(--alert-dim); }
+  .snooze-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .snooze-label {
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+  .snooze-btn {
+    flex: 1;
+    border: 1px solid var(--border);
+    background: none;
+    color: var(--muted);
+    border-radius: 10px;
+    padding: 10px 6px;
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .snooze-btn:active { background: var(--surface); color: var(--text); transform: scale(0.96); }
+
+  /* Settings drawer */
+  .settings-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: none;
+    z-index: 10;
+    backdrop-filter: blur(4px);
+  }
+  .settings-overlay.open { display: flex; align-items: flex-end; }
+  .settings-drawer {
+    width: 100%;
+    background: #1c1c1c;
+    border-radius: 20px 20px 0 0;
+    padding: 24px 24px calc(24px + env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid var(--border);
+  }
+  .drawer-handle {
+    width: 36px; height: 4px;
+    background: var(--subtle);
+    border-radius: 2px;
+    margin: 0 auto 24px;
+  }
+  .drawer-title {
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 20px;
+  }
+  .setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .setting-row:last-child { border-bottom: none; }
+  .setting-label { font-size: 15px; color: var(--text); }
+  .setting-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .setting-val {
+    font-size: 15px;
+    color: var(--work);
+    min-width: 52px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 130px;
+    height: 3px;
+    background: var(--subtle);
+    border-radius: 2px;
+    outline: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: var(--work);
+    cursor: pointer;
+  }
+
+  /* Log */
+  .log-section {
+    padding: 12px 0 0;
+    max-height: 80px;
+    overflow: hidden;
+  }
+  .log-entry {
+    font-size: 12px;
+    color: var(--muted);
+    padding: 3px 0;
+    display: flex;
+    gap: 10px;
+    font-variant-numeric: tabular-nums;
+  }
+  .log-time { color: var(--subtle); flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="header">
+    <div class="logo">VEAKE</div>
+    <button class="gear-btn" onclick="openSettings()" aria-label="Impostazioni">⚙</button>
+  </div>
+
+  <div class="sessions" id="sessions"></div>
+
+  <div class="clock-wrap">
+    <div class="ring-container">
+      <svg viewBox="0 0 260 260">
+        <circle class="ring-bg" cx="130" cy="130" r="116"/>
+        <circle class="ring-fg" id="ring" cx="130" cy="130" r="116"
+          stroke="#c8f04a" stroke-dasharray="729" stroke-dashoffset="729"/>
+      </svg>
+      <div class="clock-inner">
+        <div class="clock-time" id="clockTime">--:--</div>
+        <div class="clock-sub" id="clockSub">premi avvia</div>
+      </div>
+    </div>
+
+    <div class="status-pill" id="statusPill">
+      <div class="dot-live"></div>
+      <span id="statusText">In attesa</span>
+    </div>
+  </div>
+
+  <div class="bottom">
+    <div id="snoozeRow" class="snooze-row" style="display:none">
+      <span class="snooze-label">Rimanda</span>
+      <button class="snooze-btn" onclick="snooze(5)">+5 min</button>
+      <button class="snooze-btn" onclick="snooze(10)">+10 min</button>
+      <button class="snooze-btn" onclick="snooze(15)">+15 min</button>
+    </div>
+    <div class="btn-row" id="btnRow">
+      <button class="btn primary" onclick="startDay()">▶ Avvia giornata</button>
+    </div>
+    <div class="log-section" id="logSection"></div>
+  </div>
+</div>
+
+<!-- Settings drawer -->
+<div class="settings-overlay" id="settingsOverlay" onclick="closeSettings(event)">
+  <div class="settings-drawer">
+    <div class="drawer-handle"></div>
+    <div class="drawer-title">Impostazioni</div>
+    <div class="setting-row">
+      <span class="setting-label">Sessione lavoro</span>
+      <div class="setting-right">
+        <input type="range" id="workMin" min="15" max="90" step="5" value="45" oninput="updateSettings()">
+        <span class="setting-val" id="workVal">45 min</span>
+      </div>
+    </div>
+    <div class="setting-row">
+      <span class="setting-label">Pausa breve</span>
+      <div class="setting-right">
+        <input type="range" id="breakMin" min="5" max="30" step="5" value="10" oninput="updateSettings()">
+        <span class="setting-val" id="breakVal">10 min</span>
+      </div>
+    </div>
+    <div class="setting-row">
+      <span class="setting-label">Sessioni per ciclo</span>
+      <div class="setting-right">
+        <input type="range" id="sessCount" min="2" max="8" step="1" value="4" oninput="updateSettings()">
+        <span class="setting-val" id="sessVal">4</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const CIRC = 729;
+let state = 'idle';
+let interval = null;
+let remaining = 0, total = 0;
+let sessionsDone = 0;
+let workMin = 45, breakMin = 10, sessCount = 4;
+let swReg = null;
+let audioCtx = null;
+let notifGranted = false;
+
+// Service worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').then(r => { swReg = r; });
+}
+
+// Persist settings
+function loadSettings() {
+  const s = localStorage.getItem('veake_settings');
+  if (s) {
+    const p = JSON.parse(s);
+    workMin = p.workMin || 45;
+    breakMin = p.breakMin || 10;
+    sessCount = p.sessCount || 4;
+    document.getElementById('workMin').value = workMin;
+    document.getElementById('breakMin').value = breakMin;
+    document.getElementById('sessCount').value = sessCount;
+    document.getElementById('workVal').textContent = workMin + ' min';
+    document.getElementById('breakVal').textContent = breakMin + ' min';
+    document.getElementById('sessVal').textContent = sessCount;
+  }
+}
+function saveSettings() {
+  localStorage.setItem('veake_settings', JSON.stringify({ workMin, breakMin, sessCount }));
+}
+function updateSettings() {
+  workMin = parseInt(document.getElementById('workMin').value);
+  breakMin = parseInt(document.getElementById('breakMin').value);
+  sessCount = parseInt(document.getElementById('sessCount').value);
+  document.getElementById('workVal').textContent = workMin + ' min';
+  document.getElementById('breakVal').textContent = breakMin + ' min';
+  document.getElementById('sessVal').textContent = sessCount;
+  saveSettings();
+}
+function openSettings() { document.getElementById('settingsOverlay').classList.add('open'); }
+function closeSettings(e) {
+  if (e.target === document.getElementById('settingsOverlay'))
+    document.getElementById('settingsOverlay').classList.remove('open');
+}
+
+// Notifications
+async function requestNotif() {
+  if ('Notification' in window) {
+    const r = await Notification.requestPermission();
+    notifGranted = r === 'granted';
+  }
+}
+function scheduleNotif(delaySec, title, body, tag) {
+  if (swReg && notifGranted) {
+    swReg.active && swReg.active.postMessage({
+      type: 'SCHEDULE_NOTIFICATION', delay: delaySec * 1000, title, body, tag
+    });
+  }
+}
+function cancelNotif(tag) {
+  if (swReg && swReg.active) {
+    swReg.active.postMessage({ type: 'CANCEL_NOTIFICATION', tag });
+  }
+}
+
+// Audio
+function playAlert() {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const freqs = [880, 660, 880, 0];
+    freqs.forEach((f, i) => {
+      if (!f) return;
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.connect(g); g.connect(audioCtx.destination);
+      o.frequency.value = f;
+      o.type = 'triangle';
+      const t = audioCtx.currentTime + i * 0.28;
+      g.gain.setValueAtTime(0.25, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+      o.start(t); o.stop(t + 0.25);
+    });
+    if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 400]);
+  } catch(e) {}
+}
+
+// UI helpers
+function fmt(s) {
+  return String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+}
+function setRing(rem, tot, color) {
+  const pct = tot > 0 ? rem / tot : 0;
+  const ring = document.getElementById('ring');
+  ring.style.strokeDashoffset = CIRC * pct;
+  ring.style.stroke = color;
+  document.getElementById('clockTime').style.color = color;
+}
+function setStatus(text, cls) {
+  const p = document.getElementById('statusPill');
+  p.className = 'status-pill ' + cls;
+  document.getElementById('statusText').textContent = text;
+}
+function renderDots() {
+  const el = document.getElementById('sessions');
+  el.innerHTML = '';
+  for (let i = 0; i < sessCount; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i < sessionsDone ? ' done' : '') +
+      (i === sessionsDone && (state === 'work' || state === 'paused') ? ' current' : '');
+    el.appendChild(d);
+  }
+}
+function setButtons(btns) {
+  const row = document.getElementById('btnRow');
+  row.innerHTML = '';
+  btns.forEach(b => {
+    const btn = document.createElement('button');
+    btn.className = 'btn ' + (b.cls || '');
+    btn.textContent = b.label;
+    btn.onclick = b.fn;
+    row.appendChild(btn);
+  });
+}
+function addLog(msg) {
+  const el = document.getElementById('logSection');
+  const now = new Date();
+  const t = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+  const e = document.createElement('div');
+  e.className = 'log-entry';
+  e.innerHTML = `<span class="log-time">${t}</span><span>${msg}</span>`;
+  el.insertBefore(e, el.firstChild);
+  while (el.children.length > 3) el.removeChild(el.lastChild);
+}
+
+// Timer core
+function startTick() {
+  clearInterval(interval);
+  document.getElementById('clockTime').textContent = fmt(remaining);
+  setRing(remaining, total, state === 'brk' ? '#4ab8f0' : '#c8f04a');
+  interval = setInterval(() => {
+    if (remaining > 0) {
+      remaining--;
+      document.getElementById('clockTime').textContent = fmt(remaining);
+      setRing(remaining, total, state === 'brk' ? '#4ab8f0' : '#c8f04a');
+    } else {
+      clearInterval(interval);
+      onEnd();
+    }
+  }, 1000);
+}
+
+function onEnd() {
+  playAlert();
+  cancelNotif('veake-work');
+  cancelNotif('veake-break');
+  if (state === 'work') {
+    state = 'alert-work';
+    setStatus('Alzati!', 'alert');
+    document.getElementById('clockSub').textContent = 'tempo scaduto';
+    setRing(0, total, '#f04a4a');
+    document.getElementById('snoozeRow').style.display = 'flex';
+    setButtons([
+      { label: '✓ Mi sono alzato', cls: 'primary', fn: startBreak },
+      { label: 'Fine giornata', cls: 'danger', fn: endDay }
+    ]);
+    addLog('⏰ Alzati!');
+  } else if (state === 'brk') {
+    state = 'alert-break';
+    setStatus('Torna al lavoro!', 'alert');
+    document.getElementById('clockSub').textContent = 'pausa finita';
+    setRing(0, total, '#f04a4a');
+    setButtons([
+      { label: '▶ Riprendo', cls: 'primary', fn: startWork },
+      { label: 'Fine giornata', cls: 'danger', fn: endDay }
+    ]);
+    addLog('⏰ Pausa finita');
+  }
+}
+
+// State transitions
+async function startDay() {
+  await requestNotif();
+  state = 'work';
+  sessionsDone = 0;
+  remaining = workMin * 60;
+  total = workMin * 60;
+  document.getElementById('clockSub').textContent = 'sessione 1';
+  setStatus('Lavoro', 'work');
+  document.getElementById('snoozeRow').style.display = 'none';
+  setButtons([
+    { label: '⏸ Pausa', fn: pauseWork },
+    { label: 'Fine giornata', cls: 'danger', fn: endDay }
+  ]);
+  renderDots();
+  addLog('Giornata avviata');
+  scheduleNotif(remaining, 'VEAKE', 'Alzati! Timer scaduto.', 'veake-work');
+  startTick();
+}
+
+function startWork() {
+  state = 'work';
+  remaining = workMin * 60;
+  total = workMin * 60;
+  document.getElementById('clockSub').textContent = `sessione ${sessionsDone + 1}`;
+  setStatus('Lavoro', 'work');
+  document.getElementById('snoozeRow').style.display = 'none';
+  setButtons([
+    { label: '⏸ Pausa', fn: pauseWork },
+    { label: 'Fine giornata', cls: 'danger', fn: endDay }
+  ]);
+  renderDots();
+  addLog(`Sessione ${sessionsDone + 1} iniziata`);
+  scheduleNotif(remaining, 'VEAKE', 'Alzati! Timer scaduto.', 'veake-work');
+  startTick();
+}
+
+function startBreak() {
+  cancelNotif('veake-work');
+  sessionsDone++;
+  state = 'brk';
+  remaining = breakMin * 60;
+  total = breakMin * 60;
+  document.getElementById('clockSub').textContent = 'pausa breve';
+  setStatus('Pausa', 'brk');
+  document.getElementById('snoozeRow').style.display = 'none';
+  setButtons([
+    { label: '▶ Fine pausa', cls: 'blue', fn: startWork },
+    { label: 'Fine giornata', cls: 'danger', fn: endDay }
+  ]);
+  renderDots();
+  addLog('Pausa iniziata');
+  scheduleNotif(remaining, 'VEAKE', 'Pausa finita — torna al lavoro!', 'veake-break');
+  startTick();
+}
+
+function pauseWork() {
+  clearInterval(interval);
+  cancelNotif('veake-work');
+  state = 'paused';
+  setStatus('In pausa', 'paused');
+  setButtons([
+    { label: '▶ Riprendi', cls: 'primary', fn: resumeWork },
+    { label: 'Fine giornata', cls: 'danger', fn: endDay }
+  ]);
+  addLog('⏸ Pausa manuale');
+}
+
+function resumeWork() {
+  state = 'work';
+  setStatus('Lavoro', 'work');
+  setButtons([
+    { label: '⏸ Pausa', fn: pauseWork },
+    { label: 'Fine giornata', cls: 'danger', fn: endDay }
+  ]);
+  addLog('▶ Ripreso');
+  scheduleNotif(remaining, 'VEAKE', 'Alzati! Timer scaduto.', 'veake-work');
+  startTick();
+}
+
+function snooze(mins) {
+  state = 'work';
+  remaining = mins * 60;
+  total = mins * 60;
+  document.getElementById('clockSub').textContent = `rimandato ${mins} min`;
+  setStatus('Lavoro', 'work');
+  document.getElementById('snoozeRow').style.display = 'none';
+  setButtons([
+    { label: '⏸ Pausa', fn: pauseWork },
+    { label: 'Fine giornata', cls: 'danger', fn: endDay }
+  ]);
+  addLog(`↷ Rimandato ${mins} min`);
+  scheduleNotif(remaining, 'VEAKE', 'Alzati! Timer scaduto.', 'veake-work');
+  startTick();
+}
+
+function endDay() {
+  clearInterval(interval);
+  cancelNotif('veake-work');
+  cancelNotif('veake-break');
+  state = 'idle';
+  document.getElementById('clockTime').textContent = '--:--';
+  document.getElementById('clockSub').textContent = 'premi avvia';
+  setStatus('In attesa', '');
+  document.getElementById('snoozeRow').style.display = 'none';
+  setRing(0, 1, 'var(--subtle)');
+  document.getElementById('clockTime').style.color = '';
+  document.getElementById('sessions').innerHTML = '';
+  setButtons([{ label: '▶ Avvia giornata', cls: 'primary', fn: startDay }]);
+  addLog('🏁 Fine giornata');
+}
+
+// Init
+loadSettings();
+renderDots();
+</script>
+</body>
+</html>
