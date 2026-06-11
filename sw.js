@@ -1,8 +1,10 @@
 const CACHE = 'veake-v1';
-const ASSETS = ['/', '/index.html', '/manifest.json'];
+const BASE = self.registration.scope;
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
+  e.waitUntil(
+    caches.open(CACHE).then(c => c.addAll([BASE, BASE + 'index.html', BASE + 'manifest.json']))
+  );
   self.skipWaiting();
 });
 
@@ -23,13 +25,11 @@ self.addEventListener('message', e => {
       self.registration.showNotification(title, {
         body,
         tag,
-        icon: '/icon-192.png',
-        badge: '/icon-192.png',
+        icon: BASE + 'icon-192.png',
+        badge: BASE + 'icon-192.png',
         vibrate: [200, 100, 200, 100, 200],
         requireInteraction: true,
-        actions: [
-          { action: 'ok', title: '✓ Ok' }
-        ]
+        actions: [{ action: 'ok', title: '✓ Ok' }]
       });
     }, delay);
   }
@@ -43,6 +43,6 @@ self.addEventListener('notificationclick', e => {
   e.notification.close();
   e.waitUntil(clients.matchAll({ type: 'window' }).then(cs => {
     if (cs.length) return cs[0].focus();
-    return clients.openWindow('/');
+    return clients.openWindow(BASE);
   }));
 });
