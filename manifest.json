@@ -2,7 +2,7 @@
   "name": "VEAKE",
   "short_name": "VEAKE",
   "description": "Timer lavoro con promemoria alzarsi",
-  "start_url": ".",
+  "start_url": "/VEAKE/",
   "display": "standalone",
   "background_color": "#0f0f0f",
   "theme_color": "#0f0f0f",
